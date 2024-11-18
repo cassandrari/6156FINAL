@@ -3,121 +3,90 @@ import pandas as pd
 import plotly.express as px
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error
 import numpy as np
-import datetime
 
 # Load the dataset
-df = pd.read_csv('Superstore_Sales.csv')
+df = pd.read_csv('Superstore_Sales.csv')  # Replace with your dataset path
 df['Order_Date'] = pd.to_datetime(df['Order_Date'])
 df['Ship_Date'] = pd.to_datetime(df['Ship_Date'])
 
-# Preprocess data (handle missing values, format columns, etc.)
-df.fillna(0, inplace=True)  # Filling missing values with zero, adjust as needed
+# Preprocess data (handle missing values, etc.)
+df.fillna(0, inplace=True)
 
-# Dropdown for selecting the analysis type (Overview of All or a specific machine)
-selection = st.selectbox("Select Analysis Type", ["Overview of All", "Sales Analysis by Category", "Sales Prediction", "Discount Impact Analysis"])
-
-if selection == "Overview of All":
-    # Overall Sales Analysis
-    st.markdown("<h3 style='text-align: center;'>Overall Sales Performance</h3>", unsafe_allow_html=True)
-    
-    # Aggregating sales by date
+# Function to create sales overview plots
+def overview_of_sales():
     overall_sales = df.groupby('Order_Date')['Sales'].sum().reset_index()
     overall_sales['YearMonth'] = overall_sales['Order_Date'].dt.to_period('M')
-    
-    # Plotting sales trend over time (line chart)
-    fig = px.line(overall_sales, x='YearMonth', y='Sales', labels={'YearMonth': 'Month', 'Sales': 'Total Sales'})
-    st.plotly_chart(fig)
 
-    # Aggregating sales by region
+    # Plot overall sales trend
+    fig1 = px.line(overall_sales, x='YearMonth', y='Sales', labels={'YearMonth': 'Month', 'Sales': 'Total Sales'})
+
     region_sales = df.groupby('Region')['Sales'].sum().reset_index()
-    st.markdown("<h3 style='text-align: center;'>Sales by Region</h3>", unsafe_allow_html=True)
-    
-    # Plotting sales by region (bar chart)
-    fig = px.bar(region_sales, x='Region', y='Sales', labels={'Region': 'Region', 'Sales': 'Total Sales'})
-    st.plotly_chart(fig)
+    fig2 = px.bar(region_sales, x='Region', y='Sales', labels={'Region': 'Region', 'Sales': 'Total Sales'})
 
-    # Sales by Category
     category_sales = df.groupby('Category')['Sales'].sum().reset_index()
-    st.markdown("<h3 style='text-align: center;'>Sales by Product Category</h3>", unsafe_allow_html=True)
-    
-    # Plotting sales by category (pie chart)
-    fig = px.pie(category_sales, names='Category', values='Sales', title='Sales by Category')
-    st.plotly_chart(fig)
+    fig3 = px.pie(category_sales, names='Category', values='Sales', title='Sales by Category')
 
-elif selection == "Sales Analysis by Category":
-    # Sales analysis for a specific category
-    category = st.selectbox("Select Product Category", df['Category'].unique())
-    category_data = df[df['Category'] == category]
+    return fig1, fig2, fig3
 
-    # Aggregating sales by sub-category
-    subcategory_sales = category_data.groupby('Sub_Category')['Sales'].sum().reset_index()
-    st.markdown(f"<h3 style='text-align: center;'>Sales by Sub-Category in {category}</h3>", unsafe_allow_html=True)
-    
-    # Plotting sales by sub-category (bar chart)
-    fig = px.bar(subcategory_sales, x='Sub_Category', y='Sales', labels={'Sub_Category': 'Sub-Category', 'Sales': 'Total Sales'})
-    st.plotly_chart(fig)
-
-elif selection == "Sales Prediction":
-    # Sales prediction (predict future sales)
-    st.markdown("<h3 style='text-align: center;'>Predict Future Sales</h3>", unsafe_allow_html=True)
-
-    # Create features for sales prediction
-    df['YearMonth'] = df['Order_Date'].dt.to_period('M')
+# Function to predict sales based on input features
+def sales_prediction(year, month, discount):
+    # Prepare data for prediction
     df['Month'] = df['Order_Date'].dt.month
     df['Year'] = df['Order_Date'].dt.year
 
-    # Prepare data for prediction
-    X = df[['Year', 'Month', 'Discount']]  # Features (Year, Month, Discount)
+    # Prepare features and target variable
+    X = df[['Year', 'Month', 'Discount']]  # Features
     y = df['Sales']  # Target (Sales)
 
-    # Split into training and test data
+    # Split data for training and testing
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train a RandomForestRegressor model
+    # Train model
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
-    # Predict sales on the test set
-    y_pred = model.predict(X_test)
+    # Make prediction
+    input_data = np.array([[year, month, discount]])
+    predicted_sales = model.predict(input_data)[0]
 
-    # Show model evaluation
-    mae = mean_absolute_error(y_test, y_pred)
-    st.write(f"Mean Absolute Error (MAE): {mae:.2f}")
+    return f"Predicted Sales for {month}/{year} with {discount}% discount: ${predicted_sales:.2f}"
 
-    # Make predictions for the future (e.g., next 6 months)
-    future_dates = pd.date_range(datetime.datetime.now(), periods=6, freq='M')
-    future_data = pd.DataFrame({
-        'Year': future_dates.year,
-        'Month': future_dates.month,
-        'Discount': [df['Discount'].mean()] * 6  # Assuming average discount for prediction
-    })
-    future_sales = model.predict(future_data)
+# Function to analyze discount impact
+def discount_impact_analysis():
+    fig1 = px.scatter(df, x='Discount', y='Sales', color='Category', title="Discount vs Sales")
+    fig2 = px.scatter(df, x='Discount', y='Profit', color='Category', title="Discount vs Profit")
 
-    # Display future sales predictions
-    st.write("Future Sales Predictions (Next 6 months):")
-    for i, sales in enumerate(future_sales):
-        st.write(f"Month: {future_dates[i].strftime('%B %Y')} - Predicted Sales: ${sales:.2f}")
+    # Return the figures
+    return fig1, fig2
 
-elif selection == "Discount Impact Analysis":
-    # Analyze the impact of discounts on sales/profit
-    st.markdown("<h3 style='text-align: center;'>Impact of Discounts on Sales and Profit</h3>", unsafe_allow_html=True)
+# Sidebar navigation
+st.sidebar.title('Sales Dashboard')
+page = st.sidebar.radio("Select a page", ["Overview of Sales", "Sales Prediction", "Discount Impact"])
 
-    # Create a scatter plot to visualize discount vs sales
-    fig = px.scatter(df, x='Discount', y='Sales', color='Category', title="Discount vs Sales", labels={'Discount': 'Discount (%)', 'Sales': 'Sales ($)'})
-    st.plotly_chart(fig)
+# Page for Overview of Sales
+if page == "Overview of Sales":
+    st.title("Overview of Sales")
+    fig1, fig2, fig3 = overview_of_sales()
+    st.plotly_chart(fig1)
+    st.plotly_chart(fig2)
+    st.plotly_chart(fig3)
 
-    # Create a scatter plot to visualize discount vs profit
-    fig = px.scatter(df, x='Discount', y='Profit', color='Category', title="Discount vs Profit", labels={'Discount': 'Discount (%)', 'Profit': 'Profit ($)'})
-    st.plotly_chart(fig)
+# Page for Sales Prediction
+elif page == "Sales Prediction":
+    st.title("Sales Prediction")
+    
+    # Input features for prediction
+    year_input = st.slider("Select Year", 2020, 2025, 2023)
+    month_input = st.slider("Select Month", 1, 12, 1)
+    discount_input = st.slider("Select Discount (%)", 0, 50, 10)
+    
+    prediction_output = sales_prediction(year_input, month_input, discount_input)
+    st.write(prediction_output)
 
-    # Correlation matrix between discount, sales, and profit
-    corr = df[['Discount', 'Sales', 'Profit']].corr()
-    st.write("Correlation Matrix (Discount, Sales, Profit):")
-    st.table(corr)
-
-else:
-    st.write("Please select a valid analysis type.")
-
-
+# Page for Discount Impact Analysis
+elif page == "Discount Impact":
+    st.title("Discount Impact Analysis")
+    fig1_impact, fig2_impact = discount_impact_analysis()
+    st.plotly_chart(fig1_impact)
+    st.plotly_chart(fig2_impact)
