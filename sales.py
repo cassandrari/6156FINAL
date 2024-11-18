@@ -26,7 +26,7 @@ def overview_of_sales():
     fig2 = px.bar(region_sales, x='Region', y='Sales', labels={'Region': 'Region', 'Sales': 'Total Sales'})
 
     category_sales = df.groupby('Category')['Sales'].sum().reset_index()
-    fig3 = px.bar(category_sales, names='Category', values='Sales', title='Sales by Category')
+    fig3 = px.pie(category_sales, names='Category', values='Sales', title='Sales by Category')
 
     return fig1, fig2, fig3
 
