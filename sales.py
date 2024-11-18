@@ -31,14 +31,20 @@ def overview_of_sales():
     return fig1, fig2, fig3
 
 # Function to predict sales based on input features
-def sales_prediction(year, month, discount):
-    # Prepare data for prediction
+def profit_prediction(year, month, discount, category, subcategory, region):
+    # Prepare the data
     df['Month'] = df['Order_Date'].dt.month
     df['Year'] = df['Order_Date'].dt.year
 
-    # Prepare features and target variable
-    X = df[['Year', 'Month', 'Discount']]  # Features
-    y = df['Sales']  # Target (Sales)
+    # Ensure category, subcategory, and region are encoded as numbers
+    label_encoder = LabelEncoder()
+    df['Category_encoded'] = label_encoder.fit_transform(df['Category'])
+    df['Subcategory_encoded'] = label_encoder.fit_transform(df['Subcategory'])
+    df['Region_encoded'] = label_encoder.fit_transform(df['Region'])
+
+    # Prepare features (including new variables) and target (Profit)
+    X = df[['Year', 'Month', 'Discount', 'Category_encoded', 'Subcategory_encoded', 'Region_encoded']]  # Features
+    y = df['Profit']  # Target (Profit)
 
     # Split data for training and testing
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -47,11 +53,19 @@ def sales_prediction(year, month, discount):
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
-    # Make prediction
-    input_data = np.array([[year, month, discount]])
-    predicted_sales = model.predict(input_data)[0]
+    # Encode the input data (year, month, discount, category, subcategory, region) for prediction
+    category_encoded = label_encoder.transform([category])[0]
+    subcategory_encoded = label_encoder.transform([subcategory])[0]
+    region_encoded = label_encoder.transform([region])[0]
+    
+    # Prepare the input data for prediction
+    input_data = np.array([[year, month, discount, category_encoded, subcategory_encoded, region_encoded]])
 
-    return f"Predicted Sales for {month}/{year} with {discount}% discount: ${predicted_sales:.2f}"
+    # Make prediction
+    predicted_profit = model.predict(input_data)[0]
+
+    return f"Predicted Profit for {category} - {subcategory} in {region} for {month}/{year} with {discount}% discount: ${predicted_profit:.2f}"
+
 
 # Function to analyze discount impact
 def discount_impact_analysis():
