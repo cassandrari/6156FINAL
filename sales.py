@@ -11,11 +11,6 @@ df['Order_Date'] = pd.to_datetime(df['Order_Date'])
 df['Ship_Date'] = pd.to_datetime(df['Ship_Date'])
 
 
-df['Date'] = pd.to_datetime(df['Date'])
-df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-
-
-
 
 df.fillna(0, inplace=True)
 
