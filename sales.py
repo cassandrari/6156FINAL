@@ -20,13 +20,13 @@ def overview_of_sales():
     overall_sales['YearMonth'] = overall_sales['Order_Date'].dt.to_period('M')
 
     # Plot overall sales trend
-    fig1 = px.line(overall_sales, x='YearMonth', y='Sales', labels={'YearMonth': 'Month', 'Sales': 'Total Sales'})
+    fig1 = px.bar(overall_sales, x='YearMonth', y='Sales', labels={'YearMonth': 'Month', 'Sales': 'Total Sales'})
 
     region_sales = df.groupby('Region')['Sales'].sum().reset_index()
     fig2 = px.bar(region_sales, x='Region', y='Sales', labels={'Region': 'Region', 'Sales': 'Total Sales'})
 
     category_sales = df.groupby('Category')['Sales'].sum().reset_index()
-    fig3 = px.pie(category_sales, names='Category', values='Sales', title='Sales by Category')
+    fig3 = px.bar(category_sales, names='Category', values='Sales', title='Sales by Category')
 
     return fig1, fig2, fig3
 
@@ -55,8 +55,8 @@ def sales_prediction(year, month, discount):
 
 # Function to analyze discount impact
 def discount_impact_analysis():
-    fig1 = px.scatter(df, x='Discount', y='Sales', color='Category', title="Discount vs Sales")
-    fig2 = px.scatter(df, x='Discount', y='Profit', color='Category', title="Discount vs Profit")
+    fig1 = px.line(df, x='Discount', y='Sales', color='Category', title="Discount vs Sales")
+    fig2 = px.line(df, x='Discount', y='Profit', color='Category', title="Discount vs Profit")
 
     # Return the figures
     return fig1, fig2
